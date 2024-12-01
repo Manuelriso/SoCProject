@@ -1,0 +1,13 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/mansourabian/PoliTo/SecondYear/SOC/SNN_project/neuron'
+relocations:
+  - { offset: 0x26, size: 0x8, addend: 0x0, symName: _update_neuron, symObjAddr: 0x0, symBinAddr: 0x100002FD0, symSize: 0xC4 }
+  - { offset: 0x41, size: 0x8, addend: 0x0, symName: _update_neuron, symObjAddr: 0x0, symBinAddr: 0x100002FD0, symSize: 0xC4 }
+  - { offset: 0x81, size: 0x8, addend: 0x0, symName: _initializeWeights, symObjAddr: 0xC4, symBinAddr: 0x100003094, symSize: 0xC4 }
+  - { offset: 0xF9, size: 0x8, addend: 0x0, symName: _initilizeNeuron, symObjAddr: 0x188, symBinAddr: 0x100003158, symSize: 0xC8 }
+  - { offset: 0x171, size: 0x8, addend: 0x0, symName: _simulate, symObjAddr: 0x250, symBinAddr: 0x100003220, symSize: 0x128 }
+  - { offset: 0x213, size: 0x8, addend: 0x0, symName: _init_output, symObjAddr: 0x378, symBinAddr: 0x100003348, symSize: 0x58 }
+  - { offset: 0x261, size: 0x8, addend: 0x0, symName: _verbose_output_of_layer, symObjAddr: 0x3D0, symBinAddr: 0x1000033A0, symSize: 0x94 }
+  - { offset: 0x2BD, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x464, symBinAddr: 0x100003434, symSize: 0x80C }
+...
