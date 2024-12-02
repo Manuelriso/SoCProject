@@ -1,19 +1,6 @@
 #include <stdio.h>
+#include "neuron.h";
 
-
-typedef struct {
-    double potential;   // Membrane potential
-    double threshold;   // threshold over which we activate the neuron
-    // double tau;         // Costante di tempo
-    int spiked;         // Flag for the spike
-    double reset;
-    int num_inputs;
-} Neuron;
-
-#define neuronFirstLevel 4
-#define neuronSecondLevel 2
-#define netLevels 2
-#define timestep 2
 
 void update_neuron(Neuron* n,int numberNeuron,int* inputNextLayer) {
     // I control the thershold
@@ -70,6 +57,24 @@ void simulate(Neuron* neurons, int num_neurons, int num_inputs, int weights[][nu
 }
 
 
+void initilizeNeuron(Neuron* n, int num_neuron, double threshold, double resetValue, int num_inputs) {
+    for (int i = 0; i < num_neuron; i++) {
+        n[i].potential = 0.0;
+        n[i].threshold = threshold;
+        n[i].spiked = false;
+        n[i].reset = resetValue;
+        n[i].num_inputs = num_inputs;
+    }
+}
+
+
+void init_output(int* input_to_the_Layer, int num_neuron_on_the_Level) {
+    for (int j = 0; j < num_neuron_on_the_Level; j++) {
+        input_to_the_Layer[j] = 0;
+    }
+}
+
+
 
 int main(int argc, char*argv[]){
 
@@ -87,27 +92,18 @@ int main(int argc, char*argv[]){
     int weightsSecondLevel[neuronSecondLevel][neuronFirstLevel] = {{0, -3, 3, 8},
                                                                     {0,5,0,0}};
     
+
     //definition of vectors that store outputs of each layer of neurons
     int inputSecondLayer[neuronFirstLevel];
     int inputThirdLayer[neuronSecondLevel];
 
 
     //Initialization of every neuron in the network
-    for (int i = 0; i < neuronFirstLevel; i++) {
-        firstLevel[i].potential = 0.0;
-        firstLevel[i].threshold = 6.0;
-        firstLevel[i].spiked = 0;
-        firstLevel[i].reset = 2.0;
-        firstLevel[i].num_inputs = 4;
-    }
+    initilizeNeuron(firstLevel,neuronFirstLevel,6.0,2.0,neuronFirstLevel);
+    initilizeNeuron(secondLevel,neuronSecondLevel,6.0,2.0,neuronFirstLevel);
 
-    for (int i = 0; i < neuronSecondLevel; i++) {
-        secondLevel[i].potential = 0.0;
-        secondLevel[i].threshold = 6.0;
-        secondLevel[i].spiked = 0;
-        secondLevel[i].reset = 2.0;
-        secondLevel[i].num_inputs = 4;
-    }
+
+
 
     //Printf to control everything is okay
     printf("First layer\n");
@@ -123,7 +119,7 @@ int main(int argc, char*argv[]){
     }
 
     //definition of primary inputs, according to # of timesteps
-    int input[4][timestep] = {
+    int input[neuronFirstLevel][timestep] = {
         {1, 0},
         {0, 0},
         {0, 0},
@@ -134,13 +130,8 @@ int main(int argc, char*argv[]){
     for (int i = 0; i < timestep; i++) {
 
         //We initialize, in every timestep, all outputs of neurons to 0.
-        for(int j=0;j<neuronFirstLevel;j++){
-            inputSecondLayer[j]=0;
-        }
-
-        for(int j=0;j<neuronSecondLevel;j++){
-            inputThirdLayer[j]=0;
-        }
+        init_output(inputSecondLayer, neuronFirstLevel);
+        init_output(inputThirdLayer, neuronSecondLevel);
 
         //Simulation of the first layer, we pass all neurons of the layer, number of neurons of the layer, matrix of the weights, primary inputs and the vector to define neuron outputs
         printf("\n\n-------------------First layer-----------------------\n\n");
