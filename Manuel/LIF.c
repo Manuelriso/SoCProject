@@ -54,9 +54,9 @@ void simulate(Neuron* neurons, int num_neurons, int num_inputs, int weights[][nu
                 neurons[i].potential += weights[i][j];
             }
             //To see better the evolution of neuron, put update_neuron here.
-            update_neuron(&neurons[i], i, inputNextLayer);
+            //update_neuron(&neurons[i], i, inputNextLayer);
         }
-        //update_neuron(&neurons[i], i, inputNextLayer);
+        update_neuron(&neurons[i], i, inputNextLayer);
     }
 }
 
