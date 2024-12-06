@@ -7,17 +7,8 @@
 
 // Neuron structure declaration
 
-typedef struct {
-    double potential;   // Membrane potential
-    double threshold;   // Threshold for spike
-    int spiked;         // Spike flag
-    double reset;       // Reset value after spike
-    int num_inputs;     // Number of inputs
-    double tau;         // Time constant for decay (leak)
-} Neuron;
-
 // Constants for the number of neurons at each level
-#define neuronFirstLevel 8
+#define neuronFirstLevel 7
 #define neuronSecondLevel 2
 /*#define num_neuron3rdLevel 12
 #define num_neuron4thLevel 10
@@ -27,6 +18,21 @@ typedef struct {
 */
 
 #define timestep 2
+
+typedef struct {
+    double potential;   // Membrane potential
+    double threshold;   // Threshold for spike
+    int spiked;         // Spike flag
+    double reset;       // Reset value after spike
+    int num_inputs;     // Number of inputs
+    double tau;         // Time constant for decay (leak)
+} Neuron;
+
+typedef struct {
+    int neuronNumber;
+    Neuron* neuronLayer;
+    int* output;
+} LayerInstanziation;
 
 // Function prototypes
 /*
