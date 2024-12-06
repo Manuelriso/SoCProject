@@ -85,13 +85,13 @@ void simulate(Neuron* neurons, int num_neurons, int num_inputs, int weights[][nu
 }
 
 
-void initializeNeuron(Neuron* n, int core_id, double threshold, double resetValue, int num_inputs, double tau) {
-        n[core_id].potential = 0.0;
-        n[core_id].threshold = threshold;
-        n[core_id].spiked = false;
-        n[core_id].reset = resetValue;
-        n[core_id].num_inputs = num_inputs;
-        n[core_id].tau = tau; // Set the time constant
+void initializeNeuron(Neuron* n, int core_id, double threshold, double resetValue, int num_inputs, double tau,int iteration) {
+        n[core_id+iteration*8].potential = 0.0;
+        n[core_id+iteration*8].threshold = threshold;
+        n[core_id+iteration*8].spiked = false;
+        n[core_id+iteration*8].reset = resetValue;
+        n[core_id+iteration*8].num_inputs = num_inputs;
+        n[core_id+iteration*8].tau = tau; // Set the time constant
         printf("Neuron number %d instanziate by core %d\n",core_id,core_id);
         printf("Potential : %f\nThresold : %f\n",n[core_id].potential,n[core_id].threshold);
 }
@@ -115,10 +115,13 @@ void initialize_weights(int neuron, int core_id, int weights[][neuron]){
 }
  
  /* Task executed by cluster cores. */ 
-void cluster_neuronInstanziation(void *arg) 
+void cluster_neuronInstanziation(void *arg,int neuronNumber,Neuron* neuronLevel) 
 { 
-    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
-    initializeNeuron(firstLevel,core_id,10.0, 2.0, neuronFirstLevel, 10.0);
+    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
+    uint32_t iteration = 0;
+    while(neuronNumber>iteration*8){  
+        initializeNeuron(neuronLevel,core_id,10.0, 2.0, neuronFirstLevel, 10.0,iteration);
+    }
 } 
 
 
@@ -136,10 +139,10 @@ void cluster_weightsInstanziation(void *arg)
 
 
  /* Cluster main entry, executed by core 0. */ 
- void cluster_delegate(void *arg) 
+ void cluster_delegate(void *arg,int neuronNumber, Neuron* neuronLevel) 
  { 
     /* Task dispatch to cluster cores. */ 
-    pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_neuronInstanziation, arg);
+    pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_neuronInstanziation(neuronNumber,neuronLevel), arg);
  } 
 
  void cluster_delegate2(void *arg) 
@@ -172,7 +175,7 @@ void cluster_weightsInstanziation(void *arg)
     struct pi_cluster_task cl_task; 
     struct pi_cluster_task cl_task2;
     struct pi_cluster_task cl_task3;
-    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task, cluster_delegate, NULL));
+    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task, cluster_delegate(neuronFirstLevel,firstLevel), NULL));
     pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task2, cluster_delegate2, NULL));
     pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task2, cluster_delegate3, NULL));
     pi_cluster_close(&cluster_dev); 
