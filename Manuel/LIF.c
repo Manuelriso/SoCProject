@@ -132,7 +132,7 @@ int main(int argc, char*argv[]){
 
 
     //Initialization of every neuron in the network
-    initilizeNeuron(firstLevel, neuronFirstLevel, 10.0, 2.0, 4, 10.0); // Example tau = 10.0
+    initilizeNeuron(firstLevel, neuronFirstLevel, 10.0, 2.0, neuronFirstLevel, 10.0); // Example tau = 10.0
     initilizeNeuron(secondLevel, neuronSecondLevel, 10.0, 2.0, neuronFirstLevel, 10.0);
 
 
