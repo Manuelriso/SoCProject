@@ -17,7 +17,7 @@ typedef struct {
 } Neuron;
 
 // Constants for the number of neurons at each level
-#define neuronFirstLevel 4
+#define neuronFirstLevel 8
 #define neuronSecondLevel 2
 /*#define num_neuron3rdLevel 12
 #define num_neuron4thLevel 10
@@ -35,5 +35,6 @@ void initilizeNeuron(Neuron *n, int num_neuron, double threshold, double resetVa
 void init_output(int *input_to_the_Layer, int num_neuron_on_the_Level);
 void verbose_output_of_layer(int num_neurono_of_the_Level, int* input8thLayer, int t);
 void simulate(Neuron* neurons, int num_neurons, int num_inputs, int weights[][num_inputs], int* input, int* inputNextLayer);
+void initialize_weights(int neuron, int input, int weights[][input]);
 
 #endif // NEURON_H

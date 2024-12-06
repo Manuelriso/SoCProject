@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "LIF.h"
 #include <math.h>
+#include <time.h>
 
 void update_neuron(Neuron* n, int numberNeuron, int* inputNextLayer) {
     // Apply decay to the membrane potential
@@ -80,6 +81,20 @@ void init_output(int* input_to_the_Layer, int num_neuron_on_the_Level) {
     }
 }
 
+void initialize_weights(int neuron, int input, int weights[][input]){
+    srand(NULL);
+    for(int i=0;i<neuron;i++){
+        for(int j=0;j<input;j++){ 
+            int min = -5;
+            int max = +10;
+
+            // Generate random number between min and max
+            int randomInRange = min + rand() % (max - min + 1);
+            weights[j][i]=randomInRange;
+        }
+    }
+}
+
 
 
 int main(int argc, char*argv[]){
@@ -88,15 +103,27 @@ int main(int argc, char*argv[]){
     Neuron firstLevel[neuronFirstLevel];
     Neuron secondLevel[neuronSecondLevel];
 
+    int weightsFirstLevel[neuronFirstLevel][neuronFirstLevel];
+    int weightsSecondLevel[neuronSecondLevel][neuronFirstLevel];
+
+    initialize_weights(neuronFirstLevel,neuronFirstLevel,weightsFirstLevel);
+
+    initialize_weights(neuronSecondLevel,neuronFirstLevel,weightsSecondLevel);
+
     //weight that connect primary inputs with first level neurons. Each row define connection to a neuron
-    int weightsFirstLevel[neuronFirstLevel][4] = {{3, 2, 4, 1},
-                                                {4,5,6,6},
-                                                {3,10,1,-5},
-                                                {4,1,2,-4}};
+    /*int weightsFirstLevel[neuronFirstLevel][neuronFirstLevel] = {{3, 2, 4, 1,4,6,8,9},
+                                                                {4,5,6,6,0,2,0,-3},
+                                                                {3,10,1,-5,-3,-2,1,4},
+                                                                {0,10,1,-5,-3,-2,1,4},
+                                                                {3,10,1,-5,-3,2,1,-4},
+                                                                {3,0,1,-5,3,-2,-1,4},
+                                                                {3,10,-1,0,3,-2,1,4},
+                                                                {4,1,2,-4,2,6,4,7}};
     
     //weight that connect outputs of the first layer with second level neurons. Each row define connection to a neuron
-    int weightsSecondLevel[neuronSecondLevel][neuronFirstLevel] = {{0, -3, 3, 8},
-                                                                    {0,5,0,0}};
+    int weightsSecondLevel[neuronSecondLevel][neuronFirstLevel] = {{0, -3, 3, 8,0,2,4,5},
+                                                                    {0,5,0,0,2,8,-3,6}};
+    */
     
 
     //definition of vectors that store outputs of each layer of neurons
@@ -105,8 +132,8 @@ int main(int argc, char*argv[]){
 
 
     //Initialization of every neuron in the network
-    initilizeNeuron(firstLevel, neuronFirstLevel, 6.0, 2.0, 4, 10.0); // Example tau = 10.0
-    initilizeNeuron(secondLevel, neuronSecondLevel, 6.0, 2.0, neuronFirstLevel, 10.0);
+    initilizeNeuron(firstLevel, neuronFirstLevel, 10.0, 2.0, 4, 10.0); // Example tau = 10.0
+    initilizeNeuron(secondLevel, neuronSecondLevel, 10.0, 2.0, neuronFirstLevel, 10.0);
 
 
 
@@ -130,7 +157,11 @@ int main(int argc, char*argv[]){
         {1, 0},
         {0, 0},
         {0, 0},
-        {1, 1}
+        {1, 1},
+        {0, 0},
+        {1, 1},
+        {0, 1},
+        {1, 0}
     };
 
     //Simulation of the network
@@ -143,7 +174,7 @@ int main(int argc, char*argv[]){
         //Simulation of the first layer, we pass all neurons of the layer, number of neurons of the layer, matrix of the weights, primary inputs and the vector to define neuron outputs
         printf("\n\n-------------------First layer-----------------------\n\n");
         //I'm passing to the simulate function the array related to the first colomn of the input,so inputs of the first timestep
-        simulate(firstLevel,neuronFirstLevel,4,weightsFirstLevel,(int[]){input[0][i], input[1][i], input[2][i], input[3][i]},inputSecondLayer);
+        simulate(firstLevel,neuronFirstLevel,neuronFirstLevel,weightsFirstLevel,(int[]){input[0][i], input[1][i], input[2][i], input[3][i]},inputSecondLayer);
         for(int j=0;j<neuronFirstLevel;j++){
             printf("Input second layer from neuron %d : %d\n",j,inputSecondLayer[j]);
         }
