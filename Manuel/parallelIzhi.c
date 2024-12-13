@@ -1,7 +1,7 @@
 /* PMSIS includes */ 
 #include "pmsis.h" 
 #include <stdio.h>
-#include "parallelLIF.h"
+#include "parallelIzhi.h"
 #include <math.h>
 #include <time.h>
 
@@ -27,92 +27,79 @@ int input[neuronFirstLevel][timestep] = {
 
  
 
- void update_neuron(Neuron* n, int numberNeuron, int* inputNextLayer) {
-    // Apply decay to the membrane potential
-    n->potential *= exp(-1.0 / n->tau); // Assuming timestep size of 1
-    
-    // Check if the neuron spiked
-    if (n->potential >= n->threshold) {
+void update_neuron(Neuron* n, int numberNeuron, int* inputNextLayer, double current) {
+
+    //Computation of the Izhikevich differential equations
+    double v_old = n->potential; 
+    n->potential += 0.04 * v_old * v_old + 5 * v_old + 140 - n->u + current;
+    n->u += n->a * (n->b * v_old - n->u);
+
+    if (n->potential >= 30) { // 30mV threshold voltage for Izhikevich
         n->spiked = 1;
-        inputNextLayer[numberNeuron] = 1;        
-        n->potential = n->reset;  // Reset potential after spike
+        inputNextLayer[numberNeuron] = 1; 
+        n->potential = n->c;              // Potential reset
+        n->u += n->d;                     //Update of the recovery value
     } else {
-        n->spiked = 0;        
+        n->spiked = 0;
     }
 
-    printf("Neuron -> %d, potential: %.2f, threshold: %.2f, spiked: %d\n",
-                numberNeuron, n->potential, n->threshold, n->spiked);
+    // Debugging output
+    printf("Neuron -> %d, potential: %.2f, recovery: %.2f, spiked: %d\n",
+           numberNeuron, n->potential, n->u, n->spiked);
 }
 
-
-
-/*
-void simulate(Neuron* neurons, int num_neurons, int weights[neuronFirstLevel][4] ,int* input,int* inputNextLayer) {
-    for (int i=0;i<num_neurons;i++){
-        for (int j=0;j<neurons[i].num_inputs;j++){
-            if(input[j]==1)
-                neurons[i].potential = neurons[i].potential + weights[i][j];
-                update_neuron(&neurons[i],i,inputNextLayer);
-        }
-    }
-    return;
-}
-
-
-void simulateSecondLayer(Neuron* neurons, int num_neurons, int weights[][neuronFirstLevel],int* input ,int* inputNextLayer) {
-    for (int i=0;i<num_neurons;i++){
-        for (int j=0;j<neurons[i].num_inputs;j++){
-            if(input[j]==1)
-                neurons[i].potential = neurons[i].potential + weights[i][j];
-                update_neuron(&neurons[i],i,inputNextLayer);
-        }
-    }
-    return;
-}
-*/
 
 
 void simulateFirstLayer(LayerInstanziation* layer,int core_id,int iteration,int num_inputs) {
     if(core_id+iteration*8<layer->neuronNumber){
+            double input_current=0.0;
             for (int j = 0; j < num_inputs; j++) {
                 //printf("%d\n",layer->input[j]);
                 if (layer->input[j] == 1) {
                     //printf("ECCOMI");
-                    layer->neuronLayer[core_id+iteration*8].potential += weightsFirstLevel[core_id+iteration*8][j];
+                    input_current=input_current+weightsFirstLevel[core_id+iteration*8][j];
                 }
                 //To see better the evolution of neuron, put update_neuron here.
                 //update_neuron(&neurons[i], i, inputNextLayer);
             }
-            update_neuron(&(layer->neuronLayer[core_id+iteration*8]), core_id+iteration*8, layer->output);
+            update_neuron(&(layer->neuronLayer[core_id+iteration*8]), core_id+iteration*8, layer->output,input_current);
     }
 }
 
 
 void simulateSecondLayer(LayerInstanziation* layer,int core_id,int iteration,int num_inputs) {
     if(core_id+iteration*8<layer->neuronNumber){
+            double input_current=0.0;
             for (int j = 0; j < num_inputs; j++) {
                 if (layer->input[j] == 1) {
                     //printf("ECCOMI");
-                    layer->neuronLayer[core_id+iteration*8].potential += weightsSecondLevel[core_id+iteration*8][j];
+                    input_current=input_current+weightsSecondLevel[core_id+iteration*8][j];
                 }
                 //To see better the evolution of neuron, put update_neuron here.
                 //update_neuron(&neurons[i], i, inputNextLayer);
             }
-            update_neuron(&(layer->neuronLayer[core_id+iteration*8]), core_id+iteration*8, layer->output);
+            update_neuron(&(layer->neuronLayer[core_id+iteration*8]), core_id+iteration*8, layer->output,input_current);
     }
 }
 
 
-void initializeNeuron(int core_id, double threshold, double resetValue, int num_inputs, double tau,int iteration,LayerInstanziation* layer) {
+void initializeNeuron(int core_id, double a, double b, double c, double d, double initialPotential, int iteration, LayerInstanziation* layer,int num_inputs) {
         if(core_id+iteration*8< layer->neuronNumber){
-            layer->neuronLayer[core_id+iteration*8].potential = -65.0;
-            layer->neuronLayer[core_id+iteration*8].threshold = threshold;
-            layer->neuronLayer[core_id+iteration*8].spiked = false;
-            layer->neuronLayer[core_id+iteration*8].reset = resetValue;
-            layer->neuronLayer[core_id+iteration*8].num_inputs = num_inputs;
-            layer->neuronLayer[core_id+iteration*8].tau = tau; // Set the time constant
-            printf("Neuron number %d instanziate by core %d\n",core_id+iteration*8,core_id);
-            printf("Potential : %f\nThresold : %f\n",layer->neuronLayer[core_id].potential,layer->neuronLayer[core_id].threshold);
+            int neuron_index = core_id + iteration * 8;
+            layer->neuronLayer[neuron_index].potential = initialPotential; // initial potential (v)
+            layer->neuronLayer[neuron_index].u = b * initialPotential;     // recovery variable (u)
+            layer->neuronLayer[neuron_index].a = a;                       // 'a' parameter'
+            layer->neuronLayer[neuron_index].b = b;                       // 'b' parameter'
+            layer->neuronLayer[neuron_index].c = c;                       // potential reset
+            layer->neuronLayer[neuron_index].d = d;                       // increment of u after the spike
+            layer->neuronLayer[neuron_index].spiked = false;              // no spike initially
+            layer->neuronLayer[neuron_index].num_inputs = num_inputs;             
+            // Debugging
+            printf("Neuron number %d instanziate by core %d\n", neuron_index, core_id);
+            printf("Potential: %f, Recovery: %f, Parameters (a, b, c, d): (%f, %f, %f, %f)\n",
+                    layer->neuronLayer[neuron_index].potential, layer->neuronLayer[neuron_index].u,
+                    layer->neuronLayer[neuron_index].a, layer->neuronLayer[neuron_index].b,
+                    layer->neuronLayer[neuron_index].c, layer->neuronLayer[neuron_index].d);
         }
 }
 
@@ -148,8 +135,8 @@ void cluster_neuronInstanziation(LayerInstanziation* layer)
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
     uint32_t iteration = 0;
     while(layer->neuronNumber>iteration*8){
-        //standard value for LIF  
-        initializeNeuron(core_id,-50.0, -65.0, neuronFirstLevel, 10.0,iteration,layer);
+        //standard value for Izhikevich  
+        initializeNeuron(core_id, 0.02, 0.2, -65.0, 8.0, -65.0, iteration, layer, neuronFirstLevel);
         iteration++;
     }
 } 

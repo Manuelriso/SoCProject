@@ -19,14 +19,18 @@
 
 #define timestep 2
 
+//a,b,c,d can be modified and modeled in order to implement different Izhikevich models
 typedef struct {
-    double potential;   // Membrane potential
-    double threshold;   // Threshold for spike
+    double potential;   // Membrane potential (v)
+    double u;           // Recovery variable (u)
+    double a;           // Parameter 'a' of Izhikevich
+    double b;           // Parameter 'b' of Izhikevich
+    double c;           // Reset potential
+    double d;           // Recovery increment after spike
     int spiked;         // Spike flag
-    double reset;       // Reset value after spike
     int num_inputs;     // Number of inputs
-    double tau;         // Time constant for decay (leak)
 } Neuron;
+
 
 typedef struct {
     int neuronNumber;
