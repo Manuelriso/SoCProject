@@ -25,66 +25,6 @@ int input[neuronFirstLevel][timestep] = {
         {1, 0}
     };
 
- 
-
- void update_neuron(Neuron* n, int numberNeuron, int* inputNextLayer) {
-    // Apply decay to the membrane potential
-    //n->potential *= exp(-1.0 / n->tau); // Assuming timestep size of 1
-    
-    // Check if the neuron spiked
-    if (n->potential >= n->threshold) {
-        n->spiked = 1;
-        inputNextLayer[numberNeuron] = 1;        
-        n->potential = n->reset;  // Reset potential after spike
-    } else {
-        n->spiked = 0;        
-    }
-
-    printf("Neuron -> %d, potential: %.2f, threshold: %.2f, spiked: %d\n",
-                numberNeuron, n->potential, n->threshold, n->spiked);
-}
-
-
-
-/*
-void simulate(Neuron* neurons, int num_neurons, int weights[neuronFirstLevel][4] ,int* input,int* inputNextLayer) {
-    for (int i=0;i<num_neurons;i++){
-        for (int j=0;j<neurons[i].num_inputs;j++){
-            if(input[j]==1)
-                neurons[i].potential = neurons[i].potential + weights[i][j];
-                update_neuron(&neurons[i],i,inputNextLayer);
-        }
-    }
-    return;
-}
-
-
-void simulateSecondLayer(Neuron* neurons, int num_neurons, int weights[][neuronFirstLevel],int* input ,int* inputNextLayer) {
-    for (int i=0;i<num_neurons;i++){
-        for (int j=0;j<neurons[i].num_inputs;j++){
-            if(input[j]==1)
-                neurons[i].potential = neurons[i].potential + weights[i][j];
-                update_neuron(&neurons[i],i,inputNextLayer);
-        }
-    }
-    return;
-}
-*/
-
-
-void simulate(Neuron* neurons, int num_neurons, int num_inputs, int weights[][num_inputs], int* input, int* inputNextLayer) {
-    for (int i = 0; i < num_neurons; i++) {
-        for (int j = 0; j < num_inputs; j++) {
-            if (input[j] == 1) {
-                neurons[i].potential += weights[i][j];
-            }
-            //To see better the evolution of neuron, put update_neuron here.
-            //update_neuron(&neurons[i], i, inputNextLayer);
-        }
-        update_neuron(&neurons[i], i, inputNextLayer);
-    }
-}
-
 
 void initializeNeuron(int core_id, double threshold, double resetValue, int num_inputs, double tau,int iteration,LayerInstanziation* layer) {
         if(core_id+iteration*8< layer->neuronNumber){

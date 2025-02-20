@@ -8,8 +8,8 @@
 // Neuron structure declaration
 
 // Constants for the number of neurons at each level
-#define neuronFirstLevel 7
-#define neuronSecondLevel 2
+#define neuronFirstLevel 10
+#define neuronSecondLevel 3
 /*#define num_neuron3rdLevel 12
 #define num_neuron4thLevel 10
 #define num_neuron5thLevel 8
@@ -30,6 +30,7 @@ typedef struct {
 
 typedef struct {
     int neuronNumber;
+    int num_inputs;
     Neuron* neuronLayer;
     int* output;
     int* input;

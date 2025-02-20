@@ -34,6 +34,7 @@ typedef struct {
 
 typedef struct {
     int neuronNumber;
+    int num_inputs;
     Neuron* neuronLayer;
     int* output;
     int* input;

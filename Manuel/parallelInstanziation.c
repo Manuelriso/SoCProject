@@ -120,7 +120,8 @@ void cluster_neuronInstanziation(void *arg,int neuronNumber,Neuron* neuronLevel)
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
     uint32_t iteration = 0;
     while(neuronNumber>iteration*8){  
-        initializeNeuron(neuronLevel,core_id,10.0, 2.0, neuronFirstLevel, 10.0,iteration);
+        initializeNeuron(neuronLevel,core_id,10.0, 2.0, neuronNumber, 10.0,iteration);
+        iteration++;
     }
 } 
 
@@ -176,8 +177,8 @@ void cluster_weightsInstanziation(void *arg)
     struct pi_cluster_task cl_task2;
     struct pi_cluster_task cl_task3;
     pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task, cluster_delegate(neuronFirstLevel,firstLevel), NULL));
-    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task2, cluster_delegate2, NULL));
-    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task2, cluster_delegate3, NULL));
+    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task, cluster_delegate2, NULL));
+    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task, cluster_delegate3, NULL));
     pi_cluster_close(&cluster_dev); 
     printf("End. Your neuron instanziation:\n"); 
     pmsis_exit(0); 
