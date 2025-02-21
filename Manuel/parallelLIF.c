@@ -6,16 +6,27 @@
 #include <time.h>
 #include <GapBuiltins.h>
 
+
+//Instanziation of the different layers of our network
+
 Neuron firstLevel[neuronFirstLevel]; 
 Neuron secondLevel[neuronSecondLevel];
 
+
+/*Instanziation of the weights of the fully connected network. For every neuron, we have n input
+and m output, where n is the number of neuron of the previous layer, m is the number of neuron of the 
+previous layer*/
 int weightsFirstLevel[neuronFirstLevel][neuronFirstLevel];
 int weightsSecondLevel[neuronSecondLevel][neuronFirstLevel];
 
+
+//Here we define the input/output for every neuron in eache layer.
 int inputFirstLayer[neuronFirstLevel];
 int inputSecondLayer[neuronFirstLevel];
 int inputThirdLayer[neuronSecondLevel];
 
+
+//Here we define the train of input of the network
 int input[neuronFirstLevel][timestep] = {
         {1, 0},
         {0, 0},
@@ -197,10 +208,12 @@ void cluster_neuronInstanziation(LayerInstanziation* layer)
 { 
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
     uint32_t iteration = 0;
-    while(layer->neuronNumber>iteration*8){
+    int iterationNumber=gap_muls(iteration,8);
+    while(layer->neuronNumber>iterationNumber){
         //standard value for LIF  
         initializeNeuron(core_id,-50.0, -65.0, layer->num_inputs, 10.0,iteration,layer);
         iteration++;
+        iterationNumber=gap_muls(iteration,8);
     }
 } 
 
@@ -209,19 +222,23 @@ void cluster_outputInstanziation(LayerInstanziation* layer)
 { 
     uint32_t iteration =0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id(); 
-    while(layer->neuronNumber>iteration*8){ 
+    uint32_t iterationNumber=gap_muls(iteration,8);
+    while(layer->neuronNumber>iterationNumber){ 
         init_output(layer,core_id,iteration);
         iteration++;
+        iterationNumber=gap_muls(iteration,8);
     }
 } 
 
 void cluster_weightsInstanziationFirstLayer(LayerInstanziation* layer) 
 { 
     uint32_t iteration=0;
-    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
-    while(layer->neuronNumber>iteration*8){
+    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id(); 
+    int iterationNumber=gap_muls(iteration,8); 
+    while(layer->neuronNumber>iterationNumber){
         initialize_weights(layer,core_id,iteration,layer->num_inputs,weightsFirstLevel);
         iteration++;
+        iterationNumber=gap_muls(iteration,8);
     }
 } 
 
@@ -229,10 +246,12 @@ void cluster_weightsInstanziationFirstLayer(LayerInstanziation* layer)
 void cluster_weightsInstanziationSecondLayer(LayerInstanziation* layer) 
 { 
     uint32_t iteration=0;
-    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
-    while(layer->neuronNumber>iteration*8){
+    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id(); 
+    int iterationNumber=gap_muls(iteration,8); 
+    while(layer->neuronNumber>iterationNumber){
         initialize_weights(layer,core_id,iteration,layer->num_inputs,weightsSecondLevel);
         iteration++;
+        iterationNumber=gap_muls(iteration,8);
     }
 } 
 
@@ -241,20 +260,24 @@ void cluster_simulationFirstLayer(LayerInstanziation* layer)
 { 
     uint32_t iteration=0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
-    while(layer->neuronNumber>iteration*8){
+    int iterationNumber=gap_muls(iteration,8);
+    while(layer->neuronNumber>iterationNumber){
         //printf("%d\n",layer->input[0]);
         simulateFirstLayer(layer,core_id,iteration,layer->num_inputs);
         iteration++;
+        iterationNumber=gap_muls(iteration,8);
     }
 } 
 
 void cluster_simulationSecondLayer(LayerInstanziation* layer) 
 { 
     uint32_t iteration=0;
-    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
-    while(layer->neuronNumber>iteration*8){
+    uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id(); 
+    int iterationNumber=gap_muls(iteration,8); 
+    while(layer->neuronNumber>iterationNumber){
         simulateSecondLayer(layer,core_id,iteration,layer->num_inputs);
         iteration++;
+        iterationNumber=gap_muls(iteration,8);
     }
 } 
 
@@ -306,6 +329,9 @@ void cluster_simulationSecondLayer(LayerInstanziation* layer)
  { 
     struct pi_device cluster_dev; 
     struct pi_cluster_conf cl_conf; 
+
+    /*We created a struct, called LayerInstanziation, useful in our cluster function,
+    because they can accept only one argument. We pass input and output pointer, neuron in the layer and so on*/
 
     LayerInstanziation secondLayer;
     secondLayer.neuronNumber=neuronSecondLevel;

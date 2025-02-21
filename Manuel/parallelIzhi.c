@@ -4,6 +4,7 @@
 #include "parallelIzhi.h"
 #include <math.h>
 #include <time.h>
+#include <GapBuiltins.h>
 
 Neuron firstLevel[neuronFirstLevel]; 
 Neuron secondLevel[neuronSecondLevel];
@@ -51,41 +52,46 @@ void update_neuron(Neuron* n, int numberNeuron, int* inputNextLayer, double curr
 
 
 void simulateFirstLayer(LayerInstanziation* layer,int core_id,int iteration,int num_inputs) {
-    if(core_id+iteration*8<layer->neuronNumber){
+    int iterationNumber=gap_muls(iteration,8);
+    int neuronNumber=gap_addnormu(core_id,iterationNumber,0);
+    if(neuronNumber<layer->neuronNumber){
             double input_current=0.0;
             for (int j = 0; j < num_inputs; j++) {
                 //printf("%d\n",layer->input[j]);
                 if (layer->input[j] == 1) {
                     //printf("ECCOMI");
-                    input_current=input_current+weightsFirstLevel[core_id+iteration*8][j];
+                    input_current=input_current+weightsFirstLevel[neuronNumber][j];
                 }
                 //To see better the evolution of neuron, put update_neuron here.
                 //update_neuron(&neurons[i], i, inputNextLayer);
             }
-            update_neuron(&(layer->neuronLayer[core_id+iteration*8]), core_id+iteration*8, layer->output,input_current);
+            update_neuron(&(layer->neuronLayer[neuronNumber]), neuronNumber, layer->output,input_current);
     }
 }
 
 
 void simulateSecondLayer(LayerInstanziation* layer,int core_id,int iteration,int num_inputs) {
-    if(core_id+iteration*8<layer->neuronNumber){
+    int iterationNumber=gap_muls(iteration,8);
+    int neuronNumber=gap_addnormu(core_id,iterationNumber,0);
+    if(neuronNumber<layer->neuronNumber){
             double input_current=0.0;
             for (int j = 0; j < num_inputs; j++) {
                 if (layer->input[j] == 1) {
                     //printf("ECCOMI");
-                    input_current=input_current+weightsSecondLevel[core_id+iteration*8][j];
+                    input_current=input_current+weightsSecondLevel[neuronNumber][j];
                 }
                 //To see better the evolution of neuron, put update_neuron here.
                 //update_neuron(&neurons[i], i, inputNextLayer);
             }
-            update_neuron(&(layer->neuronLayer[core_id+iteration*8]), core_id+iteration*8, layer->output,input_current);
+            update_neuron(&(layer->neuronLayer[neuronNumber]),neuronNumber, layer->output,input_current);
     }
 }
 
 
 void initializeNeuron(int core_id, double a, double b, double c, double d, double initialPotential, int iteration, LayerInstanziation* layer,int num_inputs) {
+        int iterationNumber=gap_muls(iteration,8);
+        int neuron_index=gap_addnormu(core_id,iterationNumber,0);
         if(core_id+iteration*8< layer->neuronNumber){
-            int neuron_index = core_id + iteration * 8;
             layer->neuronLayer[neuron_index].potential = initialPotential; // initial potential (v)
             layer->neuronLayer[neuron_index].u = b * initialPotential;     // recovery variable (u)
             layer->neuronLayer[neuron_index].a = a;                       // 'a' parameter'
@@ -106,8 +112,10 @@ void initializeNeuron(int core_id, double a, double b, double c, double d, doubl
 
 
 void init_output( LayerInstanziation* layer,int core_id,int iteration) {
-    if(core_id+iteration*8<layer->neuronNumber){
-        layer->output[core_id+iteration*8]=0;
+    int iterationNumber=gap_muls(iteration,8);
+    int neuronNumber=gap_addnormu(core_id,iterationNumber,0);
+    if(neuronNumber<layer->neuronNumber){
+        layer->output[neuronNumber]=0;
         //printf("Output fissato a %d da core %d\n",layer->output[core_id],core_id);
     }
 }
@@ -115,7 +123,9 @@ void init_output( LayerInstanziation* layer,int core_id,int iteration) {
 
 
 void initialize_weights(LayerInstanziation* layer, int core_id, int iteration,int input,int weights[][input]){
-    if(core_id+iteration*8<layer->neuronNumber){
+    int iterationNumber=gap_muls(iteration,8);
+    int neuronNumber=gap_addnormu(core_id,iterationNumber,0);
+    if(neuronNumber<layer->neuronNumber){
         for(int i=0;i<input;i++){
             int randomInRange = core_id+3;
             /*int random_value = pi_rand();  // PULP function to generate a number on 32 bits.
@@ -123,7 +133,7 @@ void initialize_weights(LayerInstanziation* layer, int core_id, int iteration,in
             //Random value between -5 and 5
             int randomInRange = (random_value % 11) - 5;
             */
-            weights[core_id+iteration*8][i]=randomInRange;
+            weights[neuronNumber][i]=randomInRange;
             //printf("Weights posizione %d %d fissato a %d\n",core_id,i,randomInRange);
         }
     }
@@ -136,7 +146,7 @@ void cluster_neuronInstanziation(LayerInstanziation* layer)
     uint32_t iteration = 0;
     while(layer->neuronNumber>iteration*8){
         //standard value for Izhikevich  
-        initializeNeuron(core_id, 0.02, 0.2, -65.0, 8.0, -65.0, iteration, layer, neuronFirstLevel);
+        initializeNeuron(core_id, 0.02, 0.2, -65.0, 8.0, -65.0, iteration, layer, layer->num_inputs);
         iteration++;
     }
 } 
@@ -157,7 +167,7 @@ void cluster_weightsInstanziationFirstLayer(LayerInstanziation* layer)
     uint32_t iteration=0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
     while(layer->neuronNumber>iteration*8){
-        initialize_weights(layer,core_id,iteration,neuronFirstLevel,weightsFirstLevel);
+        initialize_weights(layer,core_id,iteration,layer->num_inputs,weightsFirstLevel);
         iteration++;
     }
 } 
@@ -168,7 +178,7 @@ void cluster_weightsInstanziationSecondLayer(LayerInstanziation* layer)
     uint32_t iteration=0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
     while(layer->neuronNumber>iteration*8){
-        initialize_weights(layer,core_id,iteration,neuronFirstLevel,weightsSecondLevel);
+        initialize_weights(layer,core_id,iteration,layer->num_inputs,weightsSecondLevel);
         iteration++;
     }
 } 
@@ -180,7 +190,7 @@ void cluster_simulationFirstLayer(LayerInstanziation* layer)
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
     while(layer->neuronNumber>iteration*8){
         //printf("%d\n",layer->input[0]);
-        simulateFirstLayer(layer,core_id,iteration,neuronFirstLevel);
+        simulateFirstLayer(layer,core_id,iteration,layer->num_inputs);
         iteration++;
     }
 } 
@@ -190,7 +200,7 @@ void cluster_simulationSecondLayer(LayerInstanziation* layer)
     uint32_t iteration=0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();  
     while(layer->neuronNumber>iteration*8){
-        simulateSecondLayer(layer,core_id,iteration,neuronFirstLevel);
+        simulateSecondLayer(layer,core_id,iteration,layer->num_inputs);
         iteration++;
     }
 } 
@@ -249,11 +259,13 @@ void cluster_simulationSecondLayer(LayerInstanziation* layer)
     secondLayer.neuronLayer=secondLevel;
     secondLayer.output=inputThirdLayer;
     secondLayer.input=inputSecondLayer;
+    secondLayer.num_inputs=neuronFirstLevel;
 
     LayerInstanziation firstLayer;
     firstLayer.neuronNumber=neuronFirstLevel;
     firstLayer.neuronLayer=firstLevel;
     firstLayer.output=inputSecondLayer;
+    firstLayer.num_inputs=neuronFirstLevel;
 
     /* Init cluster configuration structure. */ 
     pi_cluster_conf_init(&cl_conf); 
