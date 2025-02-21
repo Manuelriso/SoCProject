@@ -9,7 +9,8 @@
 
 // Constants for the number of neurons at each level
 #define neuronFirstLevel 10
-#define neuronSecondLevel 3
+#define neuronSecondLevel 8
+#define neuronThirdLevel 3
 /*#define num_neuron3rdLevel 12
 #define num_neuron4thLevel 10
 #define num_neuron5thLevel 8
