@@ -1,33 +1,67 @@
-/* PMSIS includes */ 
+/** 
+ * @file parallelIzhi.c
+ * @brief Implementation of a Spiking Neural Network using the Izhikevich model on GAP8.
+ * 
+ * This program simulates a two-layer Spiking Neural Network using parallel execution
+ * on GAP8 cores. It includes neuron instantiation, weight initialization, and 
+ * simulation functions for both layers.
+ */
 #include "pmsis.h" 
 #include <stdio.h>
 #include "parallelIzhi.h"
 #include <math.h>
 #include <time.h>
 #include <GapBuiltins.h>
-
+/** @brief Array of neurons in the first layer */
 Neuron firstLevel[neuronFirstLevel]; 
+/** @brief Array of neurons in the second layer */
 Neuron secondLevel[neuronSecondLevel];
 
+/**
+* Weights matrix for connections within the first level.
+* Each row corresponds to a neuron in the first level and each column to an input neuron.
+*/
 int weightsFirstLevel[neuronFirstLevel][neuronFirstLevel];
-int weightsSecondLevel[neuronSecondLevel][neuronFirstLevel];
 
-int inputFirstLayer[neuronFirstLevel];
-int inputSecondLayer[neuronFirstLevel];
-int inputThirdLayer[neuronSecondLevel];
 
-int input[neuronFirstLevel][timestep] = {
-        {1, 0},
-        {0, 0},
-        {0, 0},
-        {0, 1},
-        {0, 0},
-        {0, 0},
-        {0, 0}
-    };
+/** 
+ * Weights matrix for connections from the first level to the second level.
+ * Each row corresponds to a neuron in the second level and each column to an input neuron from the first level.
+ */
+ int weightsSecondLevel[neuronSecondLevel][neuronFirstLevel];
 
+ /** @brief Input array for the first layer */
+ int inputFirstLayer[neuronFirstLevel];
  
+ /** @brief Input array for the second layer */
+ int inputSecondLayer[neuronFirstLevel];
+ 
+ /** @brief Input array for the third layer */
+ int inputThirdLayer[neuronSecondLevel];
+ 
+ /** @brief Sample input sequence for neurons */
+ int input[neuronFirstLevel][timestep] = {
+         {1, 0},
+         {0, 0},
+         {0, 0},
+         {0, 1},
+         {0, 0},
+         {0, 0},
+         {0, 0}
+     };
 
+ /**
+ * @brief Updates a single neuron's state based on the Izhikevich model.
+ * 
+ * This function computes the membrane potential and recovery variable for 
+ * a neuron using the Izhikevich differential equations. It also determines 
+ * whether the neuron has spiked.
+ * 
+ * @param n Pointer to the neuron to update.
+ * @param numberNeuron Index of the neuron in the layer.
+ * @param inputNextLayer Pointer to the input array of the next layer.
+ * @param current The input current applied to the neuron.
+ */
 void update_neuron(Neuron* n, int numberNeuron, int* inputNextLayer, double current) {
 
     //Computation of the Izhikevich differential equations
@@ -50,6 +84,18 @@ void update_neuron(Neuron* n, int numberNeuron, int* inputNextLayer, double curr
 }
 
 
+/**
+ * @brief Simulates the update of neurons in the first layer.
+ *
+ * This function iterates over the neurons of the first layer assigned to the current core,
+ * computes the input current based on incoming spikes and corresponding weights, and updates
+ * the neuron's state by calling update_neuron.
+ *
+ * @param layer Pointer to the layer instantiation containing neurons, inputs, and outputs.
+ * @param core_id Identifier for the current processing core.
+ * @param iteration Current iteration number in the simulation.
+ * @param num_inputs Number of input connections to be processed.
+ */
 
 void simulateFirstLayer(LayerInstanziation* layer,int core_id,int iteration,int num_inputs) {
     int iterationNumber=gap_muls(iteration,8);
@@ -69,6 +115,18 @@ void simulateFirstLayer(LayerInstanziation* layer,int core_id,int iteration,int 
     }
 }
 
+/**
+ * @brief Simulates the update of neurons in the second layer.
+ *
+ * Similar to simulateFirstLayer, this function processes neurons in the second layer assigned to the
+ * current core. It calculates the input current from incoming spikes and their associated weights and
+ * then updates the neuron's state.
+ *
+ * @param layer Pointer to the layer instantiation containing neurons, inputs, number of inputs neuron number and outputs.
+ * @param core_id Identifier for the current processing core.
+ * @param iteration Current iteration number in the simulation.
+ * @param num_inputs Number of input connections to be processed.
+ */
 
 void simulateSecondLayer(LayerInstanziation* layer,int core_id,int iteration,int num_inputs) {
     int iterationNumber=gap_muls(iteration,8);
@@ -87,6 +145,23 @@ void simulateSecondLayer(LayerInstanziation* layer,int core_id,int iteration,int
     }
 }
 
+/**
+ * @brief Initializes a neuron in the given layer.
+ *
+ * This function sets the initial state of a neuron by initializing its membrane potential,
+ * recovery variable, model parameters (a, b, c, d), and the number of inputs. The neuron is
+ * selected based on the current core and iteration.
+ *
+ * @param core_id Identifier of the processing core initializing the neuron.
+ * @param a Parameter 'a' of the Izhikevich neuron model.
+ * @param b Parameter 'b' of the Izhikevich neuron model.
+ * @param c Reset value for the membrane potential after a spike.
+ * @param d Increment to the recovery variable after a spike.
+ * @param initialPotential Initial membrane potential for the neuron.
+ * @param iteration Current iteration number of the simulation.
+ * @param layer Pointer to the layer instantiation containing the neuron array.
+ * @param num_inputs Number of input connections for the neuron.
+ */
 
 void initializeNeuron(int core_id, double a, double b, double c, double d, double initialPotential, int iteration, LayerInstanziation* layer,int num_inputs) {
         int iterationNumber=gap_muls(iteration,8);
@@ -110,6 +185,15 @@ void initializeNeuron(int core_id, double a, double b, double c, double d, doubl
 }
 
 
+/**
+ * @brief Initializes the output for a neuron in the layer.
+ *
+ * This function sets the output value of a neuron to zero for a given core and iteration.
+ *
+ * @param layer Pointer to the layer instantiation containing the output array.
+ * @param core_id Identifier of the processing core.
+ * @param iteration Current iteration number of the simulation.
+ */
 
 void init_output( LayerInstanziation* layer,int core_id,int iteration) {
     int iterationNumber=gap_muls(iteration,8);
@@ -120,6 +204,19 @@ void init_output( LayerInstanziation* layer,int core_id,int iteration) {
     }
 }
 
+/**
+ * @brief Initializes the weights for the connections of a neuron.
+ *
+ * This function assigns a weight value for each input connection of a neuron, using a simple
+ * function based on the core identifier. The weights matrix is updated for the neuron selected
+ * based on the core and iteration.
+ *
+ * @param layer Pointer to the layer instantiation containing the neuron array.
+ * @param core_id Identifier of the processing core.
+ * @param iteration Current iteration number of the simulation.
+ * @param input Number of input connections for the neuron.
+ * @param weights 2D array representing the weights for the neuron's connections.
+ */
 
 
 void initialize_weights(LayerInstanziation* layer, int core_id, int iteration,int input,int weights[][input]){
@@ -139,7 +236,16 @@ void initialize_weights(LayerInstanziation* layer, int core_id, int iteration,in
     }
 }
  
- /* Task executed by cluster cores. */ 
+/**
+ * @brief Cluster-level instantiation of neurons.
+ *
+ * This function is executed by the cluster cores and initializes neurons in the provided layer.
+ * It iterates over the neurons (in chunks of 8) and calls the initializeNeuron function with standard
+ * Izhikevich parameters.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons to be initialized.
+ */
+
 void cluster_neuronInstanziation(LayerInstanziation* layer) 
 { 
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
@@ -151,7 +257,14 @@ void cluster_neuronInstanziation(LayerInstanziation* layer)
     }
 } 
 
-
+/**
+ * @brief Cluster-level instantiation of neuron outputs.
+ *
+ * This function is executed by the cluster cores and initializes the output array of each neuron in the
+ * provided layer to zero. It processes neurons in chunks based on the iteration index.
+ *
+ * @param layer Pointer to the layer instantiation containing the outputs to be initialized.
+ */
 void cluster_outputInstanziation(LayerInstanziation* layer) 
 { 
     uint32_t iteration =0;
@@ -161,6 +274,14 @@ void cluster_outputInstanziation(LayerInstanziation* layer)
         iteration++;
     }
 } 
+/**
+ * @brief Cluster-level instantiation of weights for the first layer.
+ *
+ * This function is executed by the cluster cores and initializes the weights for the neurons in the first layer.
+ * It calls the initialize_weights function for each neuron (in chunks of 8) to set up the synaptic weights.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons and weights to be initialized.
+ */
 
 void cluster_weightsInstanziationFirstLayer(LayerInstanziation* layer) 
 { 
@@ -172,6 +293,14 @@ void cluster_weightsInstanziationFirstLayer(LayerInstanziation* layer)
     }
 } 
 
+/**
+ * @brief Cluster-level instantiation of weights for the second layer.
+ *
+ * This function is executed by the cluster cores and initializes the weights for the neurons in the second layer.
+ * It iterates over the neurons (in chunks of 8) and calls the initialize_weights function to set up the synaptic weights.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons and weights to be initialized.
+ */
 
 void cluster_weightsInstanziationSecondLayer(LayerInstanziation* layer) 
 { 
@@ -183,6 +312,14 @@ void cluster_weightsInstanziationSecondLayer(LayerInstanziation* layer)
     }
 } 
 
+/**
+ * @brief Cluster-level simulation of the first layer.
+ *
+ * This function is executed by the cluster cores and simulates the activity of the first layer of neurons.
+ * It iterates over the neurons in chunks of 8 and updates their state based on the inputs and synaptic weights.
+ *
+ * @param layer Pointer to the layer instantiation containing neurons, inputs, and outputs.
+ */
 
 void cluster_simulationFirstLayer(LayerInstanziation* layer) 
 { 
@@ -194,7 +331,14 @@ void cluster_simulationFirstLayer(LayerInstanziation* layer)
         iteration++;
     }
 } 
-
+/**
+ * @brief Cluster-level simulation of the second layer.
+ *
+ * This function is executed by the cluster cores and simulates the activity of the second layer of neurons.
+ * It iterates over the neurons in chunks of 8 and updates their state based on the inputs and synaptic weights.
+ *
+ * @param layer Pointer to the layer instantiation containing neurons, inputs, and outputs.
+ */
 void cluster_simulationSecondLayer(LayerInstanziation* layer) 
 { 
     uint32_t iteration=0;
@@ -206,48 +350,107 @@ void cluster_simulationSecondLayer(LayerInstanziation* layer)
 } 
 
 
-
-
- /* Cluster main entry, executed by core 0. */ 
- void cluster_delegate(LayerInstanziation* layer) 
+/**
+ * @brief Main cluster entry point for neuron instantiation.
+ *
+ * This function is executed by core 0 and dispatches the neuron instantiation task to all cluster cores.
+ * It calls the cluster_neuronInstanziation function on each core to initialize the neurons in the layer.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons to be initialized.
+ */
+  void cluster_delegate(LayerInstanziation* layer) 
  { 
     /* Task dispatch to cluster cores. */ 
     //pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_neuronInstanziation,(neuronNumber,neuronLevel));
     pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_neuronInstanziation,layer);
  } 
 
+
+ /**
+ * @brief Main cluster entry point for output initialization.
+ *
+ * This function is executed by core 0 and dispatches the output initialization task to all cluster cores.
+ * It calls the cluster_outputInstanziation function on each core to initialize the output array of the neurons.
+ *
+ * @param layer Pointer to the layer instantiation containing the outputs to be initialized.
+ */
  void cluster_delegate2(LayerInstanziation* layer) 
  { 
     /* Task dispatch to cluster cores. */ 
     pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_outputInstanziation, layer);
  } 
 
+
+/**
+ * @brief Main cluster entry point for first layer weights instantiation.
+ *
+ * This function is executed by core 0 and dispatches the weight initialization task for the first layer 
+ * to all cluster cores. It calls the cluster_weightsInstanziationFirstLayer function on each core.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons and weights to be initialized.
+ */
  void cluster_delegate3(LayerInstanziation* layer) 
  { 
     /* Task dispatch to cluster cores. */ 
     pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_weightsInstanziationFirstLayer, layer);
  } 
 
+
+  /**
+ * @brief Main cluster entry point for second layer weights instantiation.
+ *
+ * This function is executed by core 0 and dispatches the weight initialization task for the second layer 
+ * to all cluster cores. It calls the cluster_weightsInstanziationSecondLayer function on each core.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons and weights to be initialized.
+ */
   void cluster_delegate4(LayerInstanziation* layer) 
  { 
     /* Task dispatch to cluster cores. */ 
     pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_weightsInstanziationSecondLayer, layer);
  } 
 
+ 
+ /**
+ * @brief Main cluster entry point for simulating the first layer.
+ *
+ * This function is executed by core 0 and dispatches the first layer simulation task to all cluster cores.
+ * It calls the cluster_simulationFirstLayer function on each core to update the state of the neurons in the first layer.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons, inputs, and outputs.
+ */
    void cluster_delegate5(LayerInstanziation* layer) 
  { 
     /* Task dispatch to cluster cores. */ 
     pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_simulationFirstLayer, layer);
  } 
 
-   void cluster_delegate6(LayerInstanziation* layer) 
- { 
+
+ /**
+ * @brief Main cluster entry point for simulating the second layer.
+ *
+ * This function is executed by core 0 and dispatches the second layer simulation task to all cluster cores.
+ * It calls the cluster_simulationSecondLayer function on each core to update the state of the neurons in the second layer.
+ *
+ * @param layer Pointer to the layer instantiation containing the neurons, inputs, and outputs.
+ */
+  void cluster_delegate6(LayerInstanziation* layer) 
+{  
     /* Task dispatch to cluster cores. */ 
     pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_simulationSecondLayer, layer);
- } 
+}  
 
 
- 
+/**
+ * @brief Initializes neurons and starts the simulation.
+ *
+ * This function configures and opens the cluster, instantiates neurons for the first and second layers,
+ * and sends tasks to the cluster cores for neuron and weight instantiation. It then enters the simulation loop,
+ * where for each timestep, it initializes neuron outputs, assigns inputs to the first layer, and dispatches the
+ * simulation tasks for both layers.
+ *
+ * @note This function is intended to be executed on a cluster by core 0.
+ */
  
  void neuronInstanziation(void) 
  { 
@@ -313,7 +516,14 @@ void cluster_simulationSecondLayer(LayerInstanziation* layer)
  } 
  
  
- /* Program Entry. */ 
+/**
+ * @brief Main entry point of the program.
+ *
+ * This function prints the startup message and kicks off the execution by calling the
+ * PMSIS kickoff function with neuronInstanziation as the entry function.
+ *
+ * @return int Returns the status code from pmsis_kickoff.
+ */
  int main(void) 
  { 
     printf("\n\n\t *** Neuron instanziation ***\n\n"); 
